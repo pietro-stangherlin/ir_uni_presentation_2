@@ -1,2 +1,2 @@
-# ir_uni_projectes
+# ir_uni_presentation_2
 Information Retrieval University Projects
