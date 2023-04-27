@@ -8,7 +8,7 @@ import json
 
 # --- Costanti
 INDEXNAME = "toyindex"
-FILENAME = "toy_data.json"
+FILENAME = "esempio.json"
 
 #--- importazione di parti di modulo ---#
 from elasticsearch import Elasticsearch
