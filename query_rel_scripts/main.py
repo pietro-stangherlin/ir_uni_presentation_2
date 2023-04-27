@@ -1,7 +1,9 @@
 from elasticsearch import Elasticsearch
 import query_functions as qf
+import evaluation_funcs as ef
 
 from query import QUERIES
+from relevances import RELEVANCES
 
 # constants
 INDEXNAME = "toyindex"
@@ -29,7 +31,12 @@ while True:
                                        QUERIES,
                                        el_server,
                                        INDEXNAME)
+            # print retrieved
             qf.PrettyPrintExpandQueryDict(response)
+            # print relevant
+            print(f"****Relevant docs:  {ef.RelevantQueryDocIds(int(query_id), RELEVANCES)}****")
+            print("_________________________________________________________________________________\n")
+
         else:
             print("The int should lie between 1 and 5")
                 

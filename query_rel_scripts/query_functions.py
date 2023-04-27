@@ -1,27 +1,63 @@
-# tested 2023-04-26: ok !
-def MakeSearchDict(query_text, doc_num = 10):
-    '''
-    make Elasticsearch query dict from a string
-    assuming to use only the "title" field
 
-    @param query (str) query string
-    @param doc_num (int) number of document retrieved (by descending ranking)
+##################### Basic data type transformation functions ##################
 
-    @return searc_dict (dict) a query dictionary 
-        that can be used to search in Elasticsearch
+#  tested 2023-04-27: ok!
+def FromSetToList(my_set):
     '''
-    search_dict = {
-        "size": doc_num,
-  "query": {
-    "match": {
-      "title": query_text
-    }
-  },
-  "_source": ["_id"]
-}
+    @param my_set(set): set
+    @return list of the set elements
+    '''
+    return(list(my_set))
+
+#  tested 2023-04-26: ok!
+def FromListToString(list):
+    '''
+    @param list (list) of strings (Str)
+
+    @return string (str) containing the list elements joined using " " as separator
+    '''
+    return(" ".join(list))
+
+# tested 2023-04-26: ok! 
+def ConcatenateString(str1, str2):
+    '''
+    @param str1, str2 (str) strings to be concatenated
+
+    @return str1 + str2 (str)
+    '''
+    return(str1 + " " + str2)
+
+# to be tested
+def SetUnion(set1, set2):
+    '''
+    @param set1, set2 (set): sets
+    @return (set) the union of the two sets
+    '''
+    return(set1.union(set2))
+
+
+################ Text analyzing funtions ###################
+# tested 2023-04-26: ok!
+def AnalyzeText(text, el_server, index_name = "toyindex", field = "title"):
+    '''
+    @param text (str): text to be analyzed
+    @el_server (Elasticsearch) server running
+    @index_name (str): name of the index from which you want use the analyzer
+    @field (str): field of the index from which you want to get the index analyzer
+
+    @return (set) set of tokens analyzed from text
+    '''
+    tokens = el_server.indices.analyze(index = index_name,
+                                       body = {"field" : field,
+                                               "text" : text})["tokens"]
+    tokens_set = set()
+
+    for el in tokens:
+        tokens_set.add(el["token"])
     
-    return search_dict
+    return(tokens_set)
 
+################# extracting Document properties functions ###################
 # tested 2023-04-26: ok!
 def GetAllDocIdFromSearchDictResponse(response_dict, output_list = True):
     '''
@@ -67,33 +103,56 @@ def GetDocTokensById(doc_id, index_name, el_server, field = "title"):
     @param el_server (Elasticsearch): elasticsearch server running
     @param field (str): field of the source file where to look for tokens
 
-    @return (list) list of documents descriptors (tokens) used to make the index
+    @return (set) set of documents descriptors (tokens) used to make the index
     '''
-    pass
 
     term_vectors_dict = dict(el_server.termvectors(index = index_name,
                                                    id = doc_id,
                                                    fields = field))
-    return(list(term_vectors_dict["term_vectors"]["title"]["terms"]))
+    return(set(term_vectors_dict["term_vectors"]["title"]["terms"]))
 
-#  tested 2023-04-26: ok!
-def FromListToString(list):
+########################## Query Functions #########################
+# tested 2023-04-26: ok !
+def MakeSearchDict(query_text, doc_num = 10):
     '''
-    @param list (list) of strings (Str)
+    make Elasticsearch query dict from a string
+    assuming to use only the "title" field
 
-    @return string (str) containing the list elements joined using " " as separator
+    @param query (str) query string
+    @param doc_num (int) number of document retrieved (by descending ranking)
+
+    @return searc_dict (dict) a query dictionary 
+        that can be used to search in Elasticsearch
     '''
-    return(" ".join(list))
+    search_dict = {
+        "size": doc_num,
+  "query": {
+    "match": {
+      "title": query_text
+    }
+  },
+  "_source": ["_id"]
+}
+    
+    return search_dict
 
 # tested 2023-04-26: ok! 
-def ConcatenateString(str1, str2):
+def ElSearchDocIds(query_dict, el_server, indexname):
     '''
-    @param str1, str2 (str) strings to be concatenated
+    @param query_dict (dict): query dictionary
+    @param el_server (Elasticsearch): Elasticsearch server running
+    @param indexname (str): name of the index
 
-    @return str1 + str2 (str)
+    @return list of k(specified by the query) document ids sorted by ranking (asc)
     '''
-    return(str1 + " " + str2)
+    # using by default the analyzer of the index
+    # if no analyzer is set in the body
+    response = el_server.search(index=indexname,body=query_dict)
+    doc_retr_list = GetAllDocIdFromSearchDictResponse(response)
+    return(doc_retr_list)
 
+
+############### Selecting fucntions #############
 # tested 2023-04-26: ok!
 def ChooseFirst(doc_ids_list):
     '''
@@ -106,19 +165,8 @@ def ChooseFirst(doc_ids_list):
 
     return([doc_ids_list[0]])
 
-# tested 2023-04-26: ok! 
-def ElSearchDocIds(query_dict, el_server, indexname):
-    '''
-    @param query_dict (dict): query dictionary
-    @param el_server (Elasticsearch): Elasticsearch server running
-    @param indexname (str): name of the index
 
-    @return list of k(specified by the query) document ids sorted by ranking (asc)
-    '''
-    response = el_server.search(index=indexname,body=query_dict)
-    doc_retr_list = GetAllDocIdFromSearchDictResponse(response)
-    return(doc_retr_list)
-
+################# Search Expansion functions ####################
 # tested 2023-04-27: ok!
 def ExpandSearchFromSearch(query_text,
                           el_server,
@@ -147,9 +195,14 @@ def ExpandSearchFromSearch(query_text,
     second list: list of document ids retrieved in the second search after expansion
 
     '''
+    # make query
     query_first_dict = MakeSearchDict(query_text, doc_num)
 
-    # first retrieval doc ids list
+    # stemming of initial query text
+    set_query_text = AnalyzeText(query_text,el_server,indexname)
+    str_stemmed_query_text = FromListToString(FromSetToList(set_query_text))
+
+    # first retrieval doc ids sorted by ascending ranking list
     initial_doc_ids_list = ElSearchDocIds(query_first_dict,
                                              el_server,
                                              indexname)
@@ -159,22 +212,20 @@ def ExpandSearchFromSearch(query_text,
     criterion_doc_ids =  criterion_func(initial_doc_ids_list)
 
     # for each selected doc get its term vector (descriptors/tokens)
-    # and make a list with all term vectors
-    
-    tokens_list = []
-
+    # and make a set with all term vectors
+    set_doc_tokens = set()
     for doc_id in criterion_doc_ids:
-        tokens_list.extend(GetDocTokensById(doc_id,
+       set_doc_tokens =  set_doc_tokens.union(GetDocTokensById(doc_id,
                                             indexname,
                                             el_server))
-    # debug
-    # print(f" tokens_list = {tokens_list}")
+    # union of tokens of initial query and selected doc tokens 
+    set_expanded_query_tokens = set_query_text.union(set_doc_tokens)
+
+    # make a list of tokens (for converting to string)
+    tokens_list = list(set_expanded_query_tokens)
         
-    # concatenate the tokens in one string and also with the starting query string
-    expanded_query_text = ConcatenateString(query_text,
-                                       FromListToString(tokens_list))
-    # debug
-    # print(f" new_query_text = {expanded_query_text}")
+    # concatenate the tokens in one string
+    expanded_query_text = FromListToString(tokens_list)
     
     # make new query dict
     expanded_query_dict = MakeSearchDict(expanded_query_text, doc_num)
@@ -186,7 +237,7 @@ def ExpandSearchFromSearch(query_text,
     
     returned_dic = {"intial_doc_ids_list": initial_doc_ids_list,
     "expanded_doc_ids_list": expanded_doc_ids_list,
-    "initial_query_text": query_text,
+    "initial_query_text": str_stemmed_query_text,
     "expanded_query_text": expanded_query_text}
     
     return(returned_dic)
@@ -220,6 +271,7 @@ def ExpandSearchFromQueryId(key,
                           criterion_func,
                           doc_num))    
 
+###################### Printing Dicts ##########################
 # tested 2023-04-27: ok!
 def PrettyPrintExpandQueryDict(dicto):
     '''
@@ -230,15 +282,14 @@ def PrettyPrintExpandQueryDict(dicto):
     key_idli = "intial_doc_ids_list"
     key_edli = "expanded_doc_ids_list"
 
-    print("*******************************************************************************")
+    print("-------------------------------------------------------------------------------")
     print(f"{key_iqt} : {dicto[key_iqt]}")
     print(f"{key_eqt} : {dicto[key_eqt]}")
     print(f"{key_idli} : {dicto[key_idli]}")
     print(f"{key_edli} : {dicto[key_edli]}")
-    print("*******************************************************************************")
     
 
-# testing
+#################### Testing ##########################
 if __name__ == "__main__":
     from elasticsearch import Elasticsearch
     def main():
@@ -246,6 +297,10 @@ if __name__ == "__main__":
         el_server = Elasticsearch('http://localhost:9200')
         QUERYTEXT = "dolphin"
         INDEXNAME = "toyindex"
+
+
+        #--- test FromSetToList ---#
+        # print(FromSetToList({1, 3, "aaad", "dwdwdw"}))
 
         #--- test MakeSearchDict() ---#
       
@@ -281,7 +336,9 @@ if __name__ == "__main__":
         # --- test ExpandSearchFromQueryId ---#
         # from query import QUERIES
         # print(ExpandSearchFromQueryId(2, QUERIES,el_server,INDEXNAME))
-
+        
+        # test --- AnalyzeText ---#
+        # print(AnalyzeText("elephants memori",el_server))
 
 
 
