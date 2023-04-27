@@ -3,6 +3,6 @@
 # value = query text
 
 QUERIES = {
-    1:"dolphins",
-    2:"mushrooms"
+    1:"memory",
+    2:"galaxy"
 }

@@ -1,6 +1,3 @@
-from elasticsearch import Elasticsearch
-import json
-
 # tested 2023-04-26: ok !
 def MakeSearchDict(query_text, doc_num = 10):
     '''
@@ -14,13 +11,13 @@ def MakeSearchDict(query_text, doc_num = 10):
         that can be used to search in Elasticsearch
     '''
     search_dict = {
+        "size": doc_num,
   "query": {
     "match": {
       "title": query_text
     }
   },
-  "_source": ["_id"],
-  "size": doc_num
+  "_source": ["_id"]
 }
     
     return search_dict
@@ -97,13 +94,16 @@ def ConcatenateString(str1, str2):
     '''
     return(str1 + " " + str2)
 
-# to be tested
+# tested 2023-04-26: ok!
 def ChooseFirst(doc_ids_list):
     '''
     @param doc_ids_list (list): list of sorted by ranking doc ids
 
     @ return a list iwth the first id (first element of the list)
     '''
+    if len(doc_ids_list) == 0:
+        return []
+
     return([doc_ids_list[0]])
 
 # tested 2023-04-26: ok! 
@@ -119,7 +119,7 @@ def ElSearchDocIds(query_dict, el_server, indexname):
     doc_retr_list = GetAllDocIdFromSearchDictResponse(response)
     return(doc_retr_list)
 
-# to be tested
+# tested 2023-04-27: ok!
 def ExpandSearchFromSearch(query_text,
                           el_server,
                           indexname,
@@ -138,7 +138,11 @@ def ExpandSearchFromSearch(query_text,
     @param criterion_func (function): function that select the doc ids from the first search 
     @param doc_num (int): number of retrieved documents shown in a search 
 
-    @return (list): list of 2 list:
+    @return (dict):
+    {"intial_doc_ids_list": [...],
+    "expanded_doc_ids_list": [...]",
+    "initial_query_text": "...",
+    "expanded_query_text"}
     first list: list of document ids retrieved in the first search
     second list: list of document ids retrieved in the second search after expansion
 
@@ -146,16 +150,17 @@ def ExpandSearchFromSearch(query_text,
     query_first_dict = MakeSearchDict(query_text, doc_num)
 
     # first retrieval doc ids list
-    doc_ids_list_first = ElSearchDocIds(query_first_dict,
+    initial_doc_ids_list = ElSearchDocIds(query_first_dict,
                                              el_server,
                                              indexname)
     
     # get doc ids based on criterion function among doc retrieved
-    criterion_doc_ids =  criterion_func(doc_ids_list_first)
+    # list
+    criterion_doc_ids =  criterion_func(initial_doc_ids_list)
 
     # for each selected doc get its term vector (descriptors/tokens)
     # and make a list with all term vectors
-
+    
     tokens_list = []
 
     for doc_id in criterion_doc_ids:
@@ -163,27 +168,79 @@ def ExpandSearchFromSearch(query_text,
                                             indexname,
                                             el_server))
     # debug
-    print(f" tokens_list = {tokens_list}")
+    # print(f" tokens_list = {tokens_list}")
         
     # concatenate the tokens in one string and also with the starting query string
-    new_query_text = ConcatenateString(query_text,
+    expanded_query_text = ConcatenateString(query_text,
                                        FromListToString(tokens_list))
     # debug
-    print(f" new_query_text = {new_query_text}")
+    # print(f" new_query_text = {expanded_query_text}")
     
     # make new query dict
-    new_query_dict = MakeSearchDict(new_query_text, doc_num)
+    expanded_query_dict = MakeSearchDict(expanded_query_text, doc_num)
 
     # new retrieval doc ids list
-    doc_ids_list_new = ElSearchDocIds(new_query_dict,
+    expanded_doc_ids_list = ElSearchDocIds(expanded_query_dict,
                                              el_server,
                                              indexname)
     
-    return([doc_ids_list_first, doc_ids_list_new])
+    returned_dic = {"intial_doc_ids_list": initial_doc_ids_list,
+    "expanded_doc_ids_list": expanded_doc_ids_list,
+    "initial_query_text": query_text,
+    "expanded_query_text": expanded_query_text}
     
-     
+    return(returned_dic)
+    
+# tested 2023-04-27: ok!
+def ExpandSearchFromQueryId(key,
+                        dicto,
+                        el_server,
+                        indexname,
+                        criterion_func = ChooseFirst,
+                        doc_num = 10):
+    '''
+    @param key (non_mutable) dictionary key: query text id
+    @param dicto (dict) dictionary containig query text id as key and query text as value
+    @param el_server (Elasticsearch): Elasticsearch server running
+    @param indexname (str): name of the index
+    @param criterion_func (function): function that select the doc ids from the first search 
+    @param doc_num (int): number of retrieved documents shown in a search
+
+    @return (dict):
+    {"intial_doc_ids_list": [...],
+    "expanded_doc_ids_list": [...]",
+    "initial_query_text": "...",
+    "expanded_query_text"}
+    first list: list of document ids retrieved in the first search
+    second list: list of document ids retrieved in the second search after expansion
+    '''
+    return(ExpandSearchFromSearch(dicto[key],
+                          el_server,
+                          indexname,
+                          criterion_func,
+                          doc_num))    
+
+# tested 2023-04-27: ok!
+def PrettyPrintExpandQueryDict(dicto):
+    '''
+    @param dicto (dict): dicitionary as returned in ExpandSearchFromSearch
+    '''
+    key_iqt = "initial_query_text"
+    key_eqt = "expanded_query_text"
+    key_idli = "intial_doc_ids_list"
+    key_edli = "expanded_doc_ids_list"
+
+    print("*******************************************************************************")
+    print(f"{key_iqt} : {dicto[key_iqt]}")
+    print(f"{key_eqt} : {dicto[key_eqt]}")
+    print(f"{key_idli} : {dicto[key_idli]}")
+    print(f"{key_edli} : {dicto[key_edli]}")
+    print("*******************************************************************************")
+    
+
 # testing
 if __name__ == "__main__":
+    from elasticsearch import Elasticsearch
     def main():
 
         el_server = Elasticsearch('http://localhost:9200')
@@ -192,10 +249,11 @@ if __name__ == "__main__":
 
         #--- test MakeSearchDict() ---#
       
-        #query_dict = MakeSearchDict(QUERYTEXT, 4)
+        # query_dict = MakeSearchDict(QUERYTEXT, 4)
 
-        #response = el_server.search(index=INDEXNAME,body=query_dict)
+        # response = el_server.search(index=INDEXNAME,body=query_dict)
         # print(response)
+ 
 
         #--- test GetAllDocIdFromSearchDictResponse() ---#
         #response_dict = dict(response)
@@ -218,9 +276,11 @@ if __name__ == "__main__":
         # print(ElSearchDocIds(query_dict, el_server, INDEXNAME))
 
         # --- test ExpandSearchFromSearch ---#
-        print(ExpandSearchFromSearch(QUERYTEXT,
-                                     el_server,
-                                     INDEXNAME))
+        # print(ExpandSearchFromSearch(QUERYTEXT,el_server,INDEXNAME))
+        
+        # --- test ExpandSearchFromQueryId ---#
+        # from query import QUERIES
+        # print(ExpandSearchFromQueryId(2, QUERIES,el_server,INDEXNAME))
 
 
 
