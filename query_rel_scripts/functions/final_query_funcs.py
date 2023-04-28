@@ -84,14 +84,19 @@ def AutomaticExpandedQueryResultFile(query_dict,
                                         el_server,
                                         index_name)
         
+
+        # add relevant doc field
+        response["relevant_docs"] = ef.RelevantQueryDocIds(int(query_id), relevaces_dict)
+
+        # add query_id
+        response["query_id"] = query_id
+
         # change each value of response dict to string to get a better printing
         for key in response:
             response[key] = str(response[key])
         
 
-        # add relevant doc field
-        response["relevant_docs"] = str(ef.RelevantQueryDocIds(int(query_id), relevaces_dict))
-
+        
         response_list.append(response)
 
         #fout.write(str(response))
