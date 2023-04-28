@@ -3,49 +3,56 @@
   "intial_doc_ids_list": "['3', '1', '5']",
   "expanded_doc_ids_list": "['3', '1', '5']",
   "initial_query_text": "memori",
-  "expanded_query_text": "categoris memori",
-  "relevant_docs": "{'2', '5', '3'}"
+  "expanded_query_text": "memori categoris",
+  "relevant_docs": "{'5', '3', '2'}",
+  "query_id": "1"
  },
  {
   "intial_doc_ids_list": "['1', '2']",
   "expanded_doc_ids_list": "['1', '3', '2', '5']",
   "initial_query_text": "eleph",
-  "expanded_query_text": "incred eleph memori",
-  "relevant_docs": "{'2', '1'}"
+  "expanded_query_text": "eleph memori incred",
+  "relevant_docs": "{'1', '2'}",
+  "query_id": "2"
  },
  {
   "intial_doc_ids_list": "['4', '5']",
   "expanded_doc_ids_list": "['4', '5', '14']",
-  "initial_query_text": "hermann ebbinghau",
-  "expanded_query_text": "hermann forget ebbinghau curv",
-  "relevant_docs": "{'4', '5'}"
+  "initial_query_text": "ebbinghau hermann",
+  "expanded_query_text": "forget ebbinghau hermann curv",
+  "relevant_docs": "{'5', '4'}",
+  "query_id": "3"
  },
  {
   "intial_doc_ids_list": "['6', '8', '7']",
   "expanded_doc_ids_list": "['6', '16', '8', '7']",
   "initial_query_text": "chess",
-  "expanded_query_text": "comput dai human chess lost",
-  "relevant_docs": "{'8', '6', '7'}"
+  "expanded_query_text": "chess dai comput human lost",
+  "relevant_docs": "{'6', '8', '7'}",
+  "query_id": "4"
  },
  {
   "intial_doc_ids_list": "['10', '11', '12']",
   "expanded_doc_ids_list": "['10', '11', '13', '12']",
-  "initial_query_text": "chang climat",
-  "expanded_query_text": "climat surviv futur crisi we chang choos",
-  "relevant_docs": "{'10', '11', '12'}"
+  "initial_query_text": "climat chang",
+  "expanded_query_text": "crisi futur chang choos we surviv climat",
+  "relevant_docs": "{'12', '10', '11'}",
+  "query_id": "5"
  },
  {
   "intial_doc_ids_list": "['0', '15', '2']",
   "expanded_doc_ids_list": "['0', '15', '2']",
-  "initial_query_text": "earth most stone expens locat",
-  "expanded_query_text": "harri earth most potter sorcerer' stone expens locat",
-  "relevant_docs": "{'22'}"
+  "initial_query_text": "stone expens earth most locat",
+  "expanded_query_text": "stone expens earth sorcerer' most locat potter harri",
+  "relevant_docs": "{'22'}",
+  "query_id": "6"
  },
  {
   "intial_doc_ids_list": "['12']",
   "expanded_doc_ids_list": "['12', '23', '10', '11']",
-  "initial_query_text": "bet casino",
-  "expanded_query_text": "world risk casino warm climat bet econom uncertainti",
-  "relevant_docs": "{'23'}"
+  "initial_query_text": "casino bet",
+  "expanded_query_text": "warm world bet casino econom risk uncertainti climat",
+  "relevant_docs": "{'23'}",
+  "query_id": "7"
  }
 ]
